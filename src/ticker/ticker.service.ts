@@ -1,9 +1,9 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { AxiosResponse } from 'axios';
-import { catchError, lastValueFrom, map, Observable } from 'rxjs';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { catchError, lastValueFrom, map } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import { TickerData } from './types/data.intefaces';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class TickerService {
@@ -12,35 +12,16 @@ export class TickerService {
   constructor(
     private readonly httpService: HttpService,
     private readonly config: ConfigService,
-    // @Inject('REDIS') private readonly redisClient: Redis,
+    private readonly redisService: RedisService,
   ) {
     this.API_URL = this.config.get<string>('API_URL');
   }
 
-  // // get available symbols/pairs
-  // exchangeInfo() {
-  //   console.log('exchangeInfo');
-  //   console.log(this.API_URL);
-  //   const url = `${this.API_URL}/exchangeInfo`;
-  //   const request$ = this.httpService.get(url).pipe(
-  //     map((resp) => resp.data.symbols),
-  //     map((data) => data.symbol),
-  //     catchError((error) => {
-  //       throw new BadRequestException(
-  //         `Failed to get symbols: ${error.message}`,
-  //       );
-  //     }),
-  //   );
-  //   return lastValueFrom(request$);
-  // }
-
   async exchangeInfo() {
-    console.log('exchangeInfo');
-    console.log(this.API_URL);
     const url = `${this.API_URL}/exchangeInfo`;
-    const cachedResult = await this.redisClient.get(url);
+    const cachedResult = await this.redisService.get(url);
     if (cachedResult) {
-      return JSON.parse(cachedResult);
+      return cachedResult;
     }
     const request$ = this.httpService.get(url).pipe(
       map((resp) => {
@@ -58,15 +39,15 @@ export class TickerService {
       }),
     );
     const result = await lastValueFrom(request$);
-    await this.redisClient.set(url, JSON.stringify(result));
+    await this.redisService.set(url, result);
     return result;
   }
 
   async paginationWithPrices(limit: number, page: number) {
     const offset = (page - 1) * limit;
-    const symbolsCached = JSON.parse(
-      await this.redisClient.get(`${this.API_URL}/exchangeInfo`),
-    ) as string[];
+    const symbolsCached = await this.redisService.get<TickerData>(
+      `${this.API_URL}/exchangeInfo`,
+    );
     if (symbolsCached) {
       const paginatedSymbols = symbolsCached.slice(offset, offset + limit);
       return await this.getPrices(paginatedSymbols);
@@ -81,10 +62,9 @@ export class TickerService {
     try {
       const url = `${this.API_URL}/ticker/price`;
       const symbolsKey = JSON.stringify(symbols);
-      const cachedResult = await this.redisClient.get(symbolsKey);
+      const cachedResult = await this.redisService.get(symbolsKey);
       if (cachedResult) {
-        console.log('Cached result:', cachedResult);
-        return JSON.parse(cachedResult);
+        return cachedResult;
       }
 
       const request$ = this.httpService
@@ -102,7 +82,7 @@ export class TickerService {
           }),
         );
       const result = await lastValueFrom(request$);
-      await this.redisClient.set(symbolsKey, JSON.stringify(result));
+      await this.redisService.set(symbolsKey, result);
       return result;
     } catch (error) {
       console.error(`Error in getPrices: ${error.message}`);

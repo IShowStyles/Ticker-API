@@ -8,13 +8,14 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { TickerService } from './ticker.service';
+import { TickerUpdateMessage } from "./types/data.intefaces";
 
-@WebSocketGateway()
+@WebSocketGateway(81, { transports: ['websocket'] })
 export class TickerUpdatesGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer() server: Server;
-  private tickerUpdates$: WebSocketSubject<any>;
+  private tickerUpdates$: WebSocketSubject<TickerUpdateMessage>;
 
   constructor(private readonly tickerService: TickerService) {
     this.tickerUpdates$ = webSocket(this.tickerService.API_URL);
@@ -38,7 +39,6 @@ export class TickerUpdatesGateway
     this.tickerUpdates$.subscribe(
       (msg) => {
         if (msg.symbol === symbol && msg.interval === '1m') {
-          // Update the ticker
           client.emit('ticker', msg);
         }
       },

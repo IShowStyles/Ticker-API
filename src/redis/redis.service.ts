@@ -9,9 +9,9 @@ export class RedisService {
     this.redis = new Redis();
   }
 
-  async get(key: string): Promise<string> {
-    const data = JSON.parse(await this.redis.get(key));
-    return data;
+  async get<T>(key: string): Promise<T> {
+    const data = await this.redis.get(key);
+    return JSON.parse(JSON.stringify(data)) as T;
   }
 
   async set(key: string, value: string): Promise<void> {
