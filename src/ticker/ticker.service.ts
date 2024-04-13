@@ -116,21 +116,21 @@ export class TickerService {
       })
       .pipe(
         map((resp) => resp.data),
-        // map((data) => {
-        //   return data.map((item) => ({
-        //     openTime: item[0],
-        //     open: item[1],
-        //     highPrice: item[2],
-        //     lowPrice: item[3],
-        //     closePrice: item[4],
-        //     volume: item[5],
-        //     closeTime: item[6],
-        //     quoteAssetVolume: item[7],
-        //     numberOfTrades: item[8],
-        //     takerBuyBaseAssetVolume: item[9],
-        //     takerBuyQuoteAssetVolume: item[10],
-        //   }));
-        // }),
+        map((data) => {
+          return data.map((item) => ({
+            openTime: item[0],
+            open: item[1],
+            highPrice: item[2],
+            lowPrice: item[3],
+            closePrice: item[4],
+            volume: item[5],
+            closeTime: item[6],
+            quoteAssetVolume: item[7],
+            numberOfTrades: item[8],
+            takerBuyBaseAssetVolume: item[9],
+            takerBuyQuoteAssetVolume: item[10],
+          }));
+        }),
         catchError((error) => {
           throw new BadRequestException(
             `Failed to data for single coin: ${error.message}`,
