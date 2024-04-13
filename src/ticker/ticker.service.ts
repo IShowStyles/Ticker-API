@@ -49,11 +49,15 @@ export class TickerService {
       `${this.API_URL}/exchangeInfo`,
     );
     if (symbolsCached) {
+      console.log(symbolsCached);
       const paginatedSymbols = symbolsCached.slice(offset, offset + limit);
+      console.log(paginatedSymbols);
       return await this.getPrices(paginatedSymbols);
     }
     const symbols = await this.exchangeInfo();
+    console.log(symbols);
     const paginatedSymbols = symbols.slice(offset, offset + limit);
+    console.log(paginatedSymbols);
     return await this.getPrices(paginatedSymbols);
   }
 
@@ -61,16 +65,19 @@ export class TickerService {
   async getPrices(symbols: string[]) {
     try {
       const url = `${this.API_URL}/ticker/price`;
-      const symbolsKey = JSON.stringify(symbols);
-      const cachedResult = await this.redisService.get(symbolsKey);
-      if (cachedResult) {
-        return cachedResult;
+      console.log(symbols, 'url');
+      const symbolsKey = symbols.join(',');
+      console.log(symbolsKey);
+      const cachedSymbols =
+        await this.redisService.get<typeof symbols>(symbolsKey);
+      if (cachedSymbols) {
+        return cachedSymbols;
       }
 
       const request$ = this.httpService
         .get(url, {
           params: {
-            symbols: symbolsKey,
+            symbols: JSON.stringify(symbols),
           },
         })
         .pipe(
@@ -82,6 +89,7 @@ export class TickerService {
           }),
         );
       const result = await lastValueFrom(request$);
+      console.log(result);
       await this.redisService.set(symbolsKey, result);
       return result;
     } catch (error) {
@@ -108,12 +116,28 @@ export class TickerService {
       })
       .pipe(
         map((resp) => resp.data),
+        // map((data) => {
+        //   return data.map((item) => ({
+        //     openTime: item[0],
+        //     open: item[1],
+        //     highPrice: item[2],
+        //     lowPrice: item[3],
+        //     closePrice: item[4],
+        //     volume: item[5],
+        //     closeTime: item[6],
+        //     quoteAssetVolume: item[7],
+        //     numberOfTrades: item[8],
+        //     takerBuyBaseAssetVolume: item[9],
+        //     takerBuyQuoteAssetVolume: item[10],
+        //   }));
+        // }),
         catchError((error) => {
           throw new BadRequestException(
             `Failed to data for single coin: ${error.message}`,
           );
         }),
       );
+    console.log(await lastValueFrom(request$));
     return await lastValueFrom(request$);
   }
 }

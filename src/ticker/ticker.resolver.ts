@@ -17,6 +17,7 @@ export class TickerResolver {
     @Args('page', { type: () => Int }) page: number,
   ): Promise<Coins[]> {
     const prices = await this.tickerService.paginationWithPrices(page, limit);
+    console.log('prices:', prices);
     return prices.map((price) => ({
       symbol: price.symbol as string,
       price: price.price as number,

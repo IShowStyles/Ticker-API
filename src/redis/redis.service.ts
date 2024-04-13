@@ -9,9 +9,13 @@ export class RedisService {
     this.redis = new Redis();
   }
 
+  async onModuleDestroy() {
+    await this.redis.flushdb();
+  }
+
   async get<T>(key: string): Promise<T> {
     const data = await this.redis.get(key);
-    return JSON.parse(JSON.stringify(data)) as T;
+    return JSON.parse(data) as T;
   }
 
   async set<T>(key: string, value: T): Promise<void> {
