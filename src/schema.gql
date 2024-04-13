@@ -11,3 +11,7 @@ type Query {
   hello: String!
   paginationWithPrices(limit: Int!, page: Int!): [Coins!]!
 }
+
+type Subscription {
+  tickerUpdates(limit: Int!, page: Int!): [Coins!]!
+}
