@@ -3,6 +3,10 @@
 Ticker API uses data protocols such as : Websockets / GraphQL / HTTP
 Cached data is stored in Redis for faster access
 
+### Roadmap
+ 1. Frontend UI for data visualization
+ 2. Email Notifications for price alerts using cron jobs and nodemailer
+
 ## Installation
 
 Clone the repository and install dependencies:
