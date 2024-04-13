@@ -89,8 +89,10 @@ export class TickerService {
       throw new BadRequestException(`Failed to get1 price: ${error.message}`);
     }
   }
+
   // for single coin to display chart
   async getKlines(symbol: string, interval: string, days: number) {
+    console.log('getKlines:', symbol, interval, days);
     const url = `${this.API_URL}/klines`;
     const endTime = Date.now();
     const startTime = endTime - days * 24 * 60 * 60 * 1000;
@@ -112,6 +114,6 @@ export class TickerService {
           );
         }),
       );
-    return lastValueFrom(request$);
+    return await lastValueFrom(request$);
   }
 }
