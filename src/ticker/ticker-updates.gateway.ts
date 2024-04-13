@@ -47,40 +47,57 @@ export class TickerUpdatesGateway
     client: Socket,
     { symbol, days }: { symbol: string; days: number },
   ) {
-    try {
-      const user = this.clients.get(client.id as string);
-      let tickerCached = await this.redisService.get(
-        `ticker:${symbol}:${days}`,
-      );
-      if (tickerCached) {
-        client.emit('ticker', tickerCached);
-        return;
-      } else {
-        tickerCached = await this.tickerService.getKlines(symbol, '5m', days);
-        await this.redisService.set(`ticker:${symbol}:${days}`, tickerCached);
-        console.log('No cached data found');
-      }
-      if (user) {
-        user.emit('ticker', tickerCached);
-        user.on('tickerUpdate', (data) => {
-          console.log('Received tickerUpdate data:', data);
-        });
-      }
-    } catch (error) {
-      console.error(`Error in handleSubscribeToTicker: ${error.message}`);
-      client.emit('subscriptionError', {
-        message: `Error retrieving data for symbol: ${symbol}`,
-      });
+    const user = this.clients.get(client.id as string);
+    if (!user) {
+      console.error(`No user found for client ID: ${client.id}`);
+      return;
     }
+
+    const tickerCached = await this.redisService.get(
+      `ticker:${symbol}:${days}`,
+    );
+    if (tickerCached) {
+      user.emit('ticker', tickerCached);
+      return;
+    }
+
+    try {
+      const newTickerData = await this.tickerService.getKlines(
+        symbol,
+        '5m',
+        days,
+      );
+      await this.redisService.set(`ticker:${symbol}:${days}`, newTickerData);
+      console.log('No cached data found');
+      user.emit('ticker', newTickerData);
+    } catch (error) {
+      console.error(
+        `Error retrieving or caching data for symbol: ${symbol}`,
+        error,
+      );
+    }
+
+    user.on('tickerUpdate', (data) => {
+      console.log('Received tickerUpdate data:', data);
+    });
   }
 
   @SubscribeMessage('tickerUpdate')
-  handleSubscribeToTickerUpdates(
+  async handleSubscribeToTickerUpdates(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { symbol: string },
   ) {
     const { symbol } = data;
     const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_1m`;
+
+    // Try to get data from Redis cache first
+    const tickerUpdatesCached = await this.redisService.get(
+      `tickerUpdates:${symbol}`,
+    );
+    if (tickerUpdatesCached) {
+      client.emit('tickerUpdate', tickerUpdatesCached);
+      return;
+    }
 
     const tickerUpdates$: WebSocketSubject<any> = webSocket({
       url: wsUrl,
@@ -88,8 +105,10 @@ export class TickerUpdatesGateway
     });
 
     tickerUpdates$.subscribe(
-      (data) => {
+      async (data) => {
         console.log('Received ticker updates:', data);
+        // Cache the ticker updates
+        await this.redisService.set(`tickerUpdates:${symbol}`, data);
         client.emit('tickerUpdate', data);
       },
       (err) => {
