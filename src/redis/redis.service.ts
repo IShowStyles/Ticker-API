@@ -14,7 +14,7 @@ export class RedisService {
     return JSON.parse(JSON.stringify(data)) as T;
   }
 
-  async set(key: string, value: string): Promise<void> {
+  async set<T>(key: string, value: T): Promise<void> {
     const jsonstr = JSON.stringify(value);
     await this.redis.set(key, jsonstr);
   }

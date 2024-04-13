@@ -11,6 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { TickerService } from './ticker.service';
 import { TickerUpdateMessage } from './types/data.intefaces';
+import { RedisService } from '../redis/redis.service';
 global.WebSocket = require('ws');
 const WebSocketConstructor = global.WebSocket;
 
@@ -21,7 +22,10 @@ export class TickerUpdatesGateway
   @WebSocketServer() server: Server;
   private clients: Map<string, Socket> = new Map();
   private tickerUpdates$: WebSocketSubject<TickerUpdateMessage>;
-  constructor(private readonly tickerService: TickerService) {}
+  constructor(
+    private readonly tickerService: TickerService,
+    private readonly redisService: RedisService,
+  ) {}
 
   handleConnection(client: Socket, ...args: any[]) {
     console.log(`Client connected: ${client.id}`);
@@ -44,15 +48,20 @@ export class TickerUpdatesGateway
     { symbol, days }: { symbol: string; days: number },
   ) {
     try {
-      console.log(
-        `Client ${client.id} subscribed to ticker: ${symbol}` +
-          ` for the last ${days} days`,
-      );
-      const ticker = await this.tickerService.getKlines(symbol, '5m', days);
-      console.log(ticker);
       const user = this.clients.get(client.id as string);
+      let tickerCached = await this.redisService.get(
+        `ticker:${symbol}:${days}`,
+      );
+      if (tickerCached) {
+        client.emit('ticker', tickerCached);
+        return;
+      } else {
+        tickerCached = await this.tickerService.getKlines(symbol, '5m', days);
+        await this.redisService.set(`ticker:${symbol}:${days}`, tickerCached);
+        console.log('No cached data found');
+      }
       if (user) {
-        user.emit('ticker', ticker);
+        user.emit('ticker', tickerCached);
         user.on('tickerUpdate', (data) => {
           console.log('Received tickerUpdate data:', data);
         });
@@ -72,10 +81,6 @@ export class TickerUpdatesGateway
   ) {
     const { symbol } = data;
     const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_1m`;
-
-    // const tickerUpdates$ = webSocket<TickerUpdateMessage>({
-    //   url: wsUrl,
-    // });
 
     const tickerUpdates$: WebSocketSubject<any> = webSocket({
       url: wsUrl,
