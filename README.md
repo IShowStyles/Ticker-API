@@ -8,6 +8,15 @@ Cached data is stored in Redis for faster access
 1. Frontend UI for data visualization
 2. Email Notifications for price alerts using cron jobs and nodemailer
 3. Containerization of the application using Docker
+4. Testing using Jest and Supertest
+
+## Tech Stack
+
+Databases: Redis
+Backend: Node.js,Nest.js
+Frontend: React.js
+Third-party APIs: Binance API
+Transport Protocols: Websockets,GraphQL,HTTP
 
 ## Installation
 
