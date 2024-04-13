@@ -10,8 +10,8 @@ Clone the repository and install dependencies:
 setup redis db 
 
 ```bash
-git clone <repository-url>
-cd <repository-name>
+git clone  https://github.com/IShowStyles/Ticker-API.git 
+cd  https://github.com/IShowStyles/Ticker-API.git 
 yarn install
 yarn dev
 ```
