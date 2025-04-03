@@ -1,19 +1,10 @@
-const serverless = require('serverless-http');
-const { NestFactory } = require('@nestjs/core');
-const { AppModule } = require('./src/app.module');
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
-let server; // Cache the server instance for performance.
-
-const bootstrapServer = async () => {
-  if (!server) {
-    const app = await NestFactory.create(AppModule);
-    await app.init();
-    server = serverless(app.getHttpAdapter().getInstance());
-  }
-  return server;
-};
-
-exports.handler = async (event, context) => {
-  const s = await bootstrapServer();
-  return s(event, context);
-};
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+  console.log('Application is running on: http://localhost:3000');
+}
+bootstrap();
