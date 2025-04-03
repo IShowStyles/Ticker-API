@@ -12,15 +12,15 @@ import { AppResolver } from './app.resolver';
 @Module({
   imports: [
     // ConfigModule.forRoot(),
-    GraphQLModule.forRoot({
-      driver: ApolloDriver,
-      autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-      sortSchema: true,
-      cors: {
-        origin: ['http://localhost:3001', 'http://localhost:5173', '*'],
-      },
-      context: ({ req, res }) => ({ req, res }),
-    }),
+    // GraphQLModule.forRoot({
+    //   driver: ApolloDriver,
+    //   autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+    //   sortSchema: true,
+    //   cors: {
+    //     origin: ['http://localhost:3001', 'http://localhost:5173', '*'],
+    //   },
+    //   context: ({ req, res }) => ({ req, res }),
+    // }),
     // TickerModule,
     // RedisModule,
   ],
