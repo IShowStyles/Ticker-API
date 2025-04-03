@@ -1,31 +1,19 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import * as cors from 'cors';
+const serverless = require('serverless-http');
+const { NestFactory } = require('@nestjs/core');
+const { AppModule } = require('./src/app.module');
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+let server; // Cache the server instance for performance.
 
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:3001',"*"];
-  app.enableCors({
-    origin: allowedOrigins,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-    credentials: true,
-  });
-  app.setGlobalPrefix('api');
-  app.use(
-    cors({
-      origin: allowedOrigins,
-      credentials: true,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    }),
-  );
-  const PORT = +process.env.PORT || 3001;
-  app.useGlobalPipes(new ValidationPipe());
-  await app.listen(PORT);
-  console.log(`Server started on http://localhost:${PORT} 🚀`);
-}
+const bootstrapServer = async () => {
+  if (!server) {
+    const app = await NestFactory.create(AppModule);
+    await app.init();
+    server = serverless(app.getHttpAdapter().getInstance());
+  }
+  return server;
+};
 
-bootstrap();
+exports.handler = async (event, context) => {
+  const s = await bootstrapServer();
+  return s(event, context);
+};
